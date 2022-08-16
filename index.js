@@ -3,8 +3,8 @@ const app = express()
 const bodyParser = require('body-parser')
 const cors = require('cors')
 require('dotenv').config()
-const port = 5000
-const stripe = require('stripe')('sk_test_51J48PcI49BSRorNv5ke8obc0zxreMRdrZO7Sd5oJHqy3cvI4B0dhRHS62w2GMZvXg9QqwAaaCFKaQsAHMURH022G00O6HywMgZ')
+const port = process.env.PORT || 5000
+const stripe = require('stripe')(process.env.STRIPE_SECRET)
 
 
 
@@ -22,9 +22,7 @@ app.get('/', (req, res) => {
 
 
 const admin = require('firebase-admin')
-
-const serviceAccount = require('./foodbrand-2bed8-firebase-adminsdk-2nlav-c6c35c74b3.json');
-
+const serviceAccount = require('./adminSDK/foodbrand-2bed8-firebase-adminsdk-2nlav-c6c35c74b3.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 })
@@ -47,7 +45,7 @@ const verifyToken = async (req, res, next) => {
 
 
 const { MongoClient, ObjectId } = require('mongodb');
-const uri = "mongodb+srv://restauranteWeb:IFuYJmiKwOLqFsDw@cluster0.nj4m0.mongodb.net/restaurantebd?retryWrites=true&w=majority";
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.nj4m0.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 client.connect(err => {
   const productCollection = client.db("restaurantebd").collection("addProduct");
@@ -61,9 +59,8 @@ client.connect(err => {
     productCollection.insertOne(productInfo)
       .then(result => {
         res.send(result.insertedCount > 0)
-        console.log(result)
+        //console.log(result)
       })
-    console.log(productInfo)
   })
 
   app.post('/showItem', (req, res) => {
@@ -72,7 +69,6 @@ client.connect(err => {
       .toArray((err, documents) => {
         res.send(documents)
         console.log(err)
-        console.log(documents)
       })
   })
 
@@ -82,7 +78,6 @@ client.connect(err => {
       const template = req.body.template
       productCollection.find({ period: template, name: { $regex: '.*' + search + '.*' } })
         .toArray((err, item) => {
-          console.log(item)
           res.send(item)
         })
 
@@ -148,7 +143,6 @@ client.connect(err => {
     categoryCollection.insertOne(data)
     .then(result =>{
       res.send(result)
-      console.log(result)
     })
   })
 
@@ -156,7 +150,6 @@ client.connect(err => {
     categoryCollection.find()
     .toArray((err,categories) =>{
       res.send(categories)
-      console.log(categories)
     })
   })
 
@@ -165,11 +158,9 @@ client.connect(err => {
 
   app.post('/addReview', (req, res) => {
     const data = req.body
-    // console.log(data)
     reviewCollection.insertOne(data)
       .then(result => {
         res.send(result.insertedCount > 0)
-        console.log(result)
       })
   })
 
@@ -179,7 +170,6 @@ client.connect(err => {
     reviewCollection.find(query)
     .toArray((err,comments) =>{
       res.send(comments)
-      console.log(comments)
     })
   })
 
@@ -190,7 +180,6 @@ client.connect(err => {
     testimonialCollection.insertOne(data)
     .then(result => {
       res.send(result.insertedCount > 0)
-      console.log(result)
     } )
   })
 
@@ -230,11 +219,9 @@ client.connect(err => {
   app.post('/orderdata', (req, res) => {
     const orderInfo = req.body
     orderInfo.createdAt = new Date().toLocaleDateString()
-    console.log(orderInfo);
     orderCollection.insertOne(orderInfo)
       .then(result => {
         res.send(result.insertedCount > 0)
-        // console.log(result)
       })
   })
 
@@ -263,7 +250,6 @@ client.connect(err => {
     orderCollection.find({ createdAt: date })
       .toArray((err, doct) => {
         res.send(doct)
-        console.log(doct)
       })
   })
 
@@ -279,7 +265,6 @@ client.connect(err => {
     const result = orderCollection.find({ 'loggedInUser.email': email })
     const data = await result.toArray()
     res.json(data)
-    console.log(data)
   })
 
 
@@ -292,13 +277,11 @@ client.connect(err => {
       admin.auth().verifyIdToken(idToken)
         .then(decodedToken => {
           const decodedTokenEmail = decodedToken.email
-          console.log(decodedTokenEmail)
 
           if (decodedTokenEmail === email) {
             orderCollection.find({ 'loggedInUser.email': email })
               .toArray((err, item) => {
                 res.send(item)
-                console.log(item)
 
               })
           }
